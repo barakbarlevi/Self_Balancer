@@ -1,0 +1,18 @@
+[Unit]
+Description=Run Communicator Script
+After=multi-user.target serial-setup.service
+Requires=serial-setup.service
+
+[Service]
+Type=simple
+User=barak
+WorkingDirectory=/home/barak
+ExecStartPre=/bin/sleep 1 
+ExecStart=/usr/bin/python3 -u /home/barak/Communicator.py
+Restart=always
+RestartSec=2
+StandardOutput=append:/home/barak/Logger.log
+StandardError=append:/home/barak/LoggedErrors.err
+
+[Install]
+WantedBy=multi-user.target

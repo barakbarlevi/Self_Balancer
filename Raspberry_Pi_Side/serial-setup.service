@@ -1,0 +1,12 @@
+[Unit]
+Description=Set serial0 baud rate
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/stty -F /dev/serial0 115200
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+
