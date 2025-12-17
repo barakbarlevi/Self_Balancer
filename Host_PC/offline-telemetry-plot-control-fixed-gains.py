@@ -1,12 +1,8 @@
-# This script produces two plots:
-#
-# 1. The Controller Terms Graph. Intended for close up looks on the terms that make up the PID controllers outputs, including in the cascaded case.
+# This script creates a plot of the controllers terms, for close up looks on the terms that make up the PID controllers outputs, including in the cascaded case.
 # It requires FIXED PID gains, so that the operator can have a fine details look on the terms that make up the control.
 # Therefore, this script asks for gain values or other constant values. 
 # If no such fine detail analysis is needed, one can input random values which will have no importance, and plot:
-#
-# 2. The combined plot, which shows all telemetry values as sent by the STM. This includes varying PID gains if the device is under
-# adjustments and is receiving them from the tuning station.
+
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -66,31 +62,6 @@ data = pd.read_csv(CSV_FILENAME)
 # 'ki_yaw',
 # 'yaw_pid_integral']
 
-
-# Ensure time column exists
-if TIME_COLUMN not in data.columns:
-    raise ValueError(f"Time column '{TIME_COLUMN}' not found in {CSV_FILENAME}")
-
-variables = [col for col in data.columns if col != TIME_COLUMN]
-
-# ---------------- Filtering ----------------
-mask = (data[variables].abs() <= THRESHOLD).all(axis=1)
-filtered_data = data[mask]
-num_removed = len(data) - len(filtered_data)
-
-if num_removed > 0:
-    print(f"⚠️  Filtered out {num_removed} rows exceeding ±{THRESHOLD}")
-
-time = filtered_data[TIME_COLUMN]
-
-# # ---------------- Combined Figure ----------------
-
-# Set depending on PWM frequency. Draws the MIN/MAX horizontal lines
-Min_PWM_Left_Forward_Tuning_Safe = 200
-Min_PWM_Left_Backward_Tuning_Safe = -200
-Min_PWM_Right_Forward_Tuning_Safe = 200
-Min_PWM_Right_Backward_Tuning_Safe = -200	
-
 # Adjust scales for plotting if needed
 scale = {
     "u_pitch_angle": 1.0,
@@ -116,77 +87,6 @@ scale = {
     "pid_update_available": 1.0,
     "chassis_psidot": 180/3.1415
 }
-
-fig_all, ax_all = plt.subplots(figsize=(10, 6))
-
-# Set background color
-fig_all.patch.set_facecolor('black')  # figure background
-ax_all.set_facecolor('black')         # axes background
-
-line_colors = {
-    # "pitch_kalman1x1_angle": "#ff9f05ff",  # orange
-    # "pwm_left": "#0055ffff",                # blue
-    # "pwm_right": "#008300ff",               # green
-}
-
-scatter_vars = {}  # <-- variables drawn as scatter
-
-lines = []
-for var in variables:
-    factor = scale.get(var, 1.0)
-    y = filtered_data[var] * factor
-
-    label = var + (f" (×{factor})" if factor != 1 else "")
-
-    if var in scatter_vars:
-        # --- scatter instead of line ---
-        line = ax_all.scatter(time, y, label=label, s=10)  # s = marker size
-    else:
-        # --- normal line ---
-        line, = ax_all.plot(time, y, label=label)
-
-    lines.append(line)
-
-ax_all.set_xlabel('Time [s]', color='white')
-ax_all.set_ylabel('Value', color='white')
-ax_all.set_title(f"All Signals from {CSV_FILENAME}", color='white')
-ax_all.tick_params(colors='white')
-ax_all.grid(True, color='gray', linestyle='--', alpha=0.5)
-
-h1 = ax_all.axhline(Min_PWM_Left_Forward_Tuning_Safe * scale["pwm_left"], color='red', linestyle='--', linewidth=1.5, label='Min Left Forward')
-h2 = ax_all.axhline(Min_PWM_Right_Forward_Tuning_Safe * scale["pwm_right"], color='magenta', linestyle='--', linewidth=1.5, label='Min Right Forward')
-h3 = ax_all.axhline(Min_PWM_Left_Backward_Tuning_Safe * scale["pwm_left"], color='red', linestyle='--', linewidth=1.5, label='Min Left Backward')
-h4 = ax_all.axhline(Min_PWM_Right_Backward_Tuning_Safe * scale["pwm_right"], color='magenta', linestyle='--', linewidth=1.5, label='Min Right Backward')
-
-leg = ax_all.legend()
-
-for text in leg.get_texts():
-    text.set_color('white')  # legend text
-
-# legend
-leg.get_frame().set_facecolor('black')  
-leg.get_frame().set_edgecolor('white')   
-leg.get_frame().set_alpha(0.8)           
-leg.set_draggable(True)
-
-# --- Click legend to toggle visibility ---
-legend_line_map = {}
-
-all_plot_lines = lines + [h1, h2, h3, h4]
-
-for legend_handle, origline in zip(leg.legend_handles, all_plot_lines):
-    legend_handle.set_picker(5)
-    legend_line_map[legend_handle] = origline
-
-def on_pick(event):
-    legline = event.artist
-    origline = legend_line_map[legline]
-    visible = not origline.get_visible()
-    origline.set_visible(visible)
-    legline.set_alpha(1.0 if visible else 0.2)
-    fig_all.canvas.draw()
-
-fig_all.canvas.mpl_connect('pick_event', on_pick)
 
 # --- Hover tooltips (snap to actual data point) ---
 import mplcursors
@@ -223,13 +123,23 @@ def on_add(sel):
     )
 
 # Show value on mouser hover
-mplcursors.cursor(all_plot_lines, hover=True).connect("add", on_add)
+#mplcursors.cursor(all_plot_lines, hover=True).connect("add", on_add)
 
+# Ensure time column exists
+if TIME_COLUMN not in data.columns:
+    raise ValueError(f"Time column '{TIME_COLUMN}' not found in {CSV_FILENAME}")
 
-# Save combined figure
-combined_path = os.path.join(SAVE_DIR, 'all_signals.png')
-fig_all.savefig(combined_path, dpi=300)
-print(f"💾 Saved combined plot: {combined_path}")
+variables = [col for col in data.columns if col != TIME_COLUMN]
+
+# ---------------- Filtering ----------------
+mask = (data[variables].abs() <= THRESHOLD).all(axis=1)
+filtered_data = data[mask]
+num_removed = len(data) - len(filtered_data)
+
+if num_removed > 0:
+    print(f"⚠️  Filtered out {num_removed} rows exceeding ±{THRESHOLD}")
+
+time = filtered_data[TIME_COLUMN]
 
 
 # ---------------- Controller Terms Graph ----------------

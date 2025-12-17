@@ -48,3 +48,7 @@ Raspberry_Pi_Side/*.csv
 *.swp
 *~
 
+# Host_PC legacy / deprecated scripts
+Host_PC/display-offlne-telemetry.py
+
+
