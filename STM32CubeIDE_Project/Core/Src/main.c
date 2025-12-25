@@ -872,7 +872,10 @@ void compute_controllers_commands(float* u_forward, float* u_turn) {
 
 	/* ------ Speed controller in Cascade ------ */
 	/*
-	float combined_angle_setpoint = (controlQuantities.target_pitch_angle + controlQuantities.u_speed_hold); // Used only when cascading the PID controllers. If they're added, this can be left out.
+  float speed_term = isfinite(controlQuantities.u_speed_hold)
+	                   ? controlQuantities.u_speed_hold
+	                   : 0.0f;
+	float combined_angle_setpoint = (controlQuantities.target_pitch_angle + speed_term); // Used only when cascading the PID controllers. If they're added, this can be left out.
 	controlQuantities.u_pitch_angle = PID_Update(&pitch_angle_pid,
 			combined_angle_setpoint,
 			pitch_kalman1x1.state_estimate,
@@ -899,7 +902,8 @@ void compute_controllers_commands(float* u_forward, float* u_turn) {
 
 
 	/* --- Speed controller in Cascade --- */
-	//float u_forward = controlQuantities.u_pitch_angle;
+	//*u_forward = controlQuantities.u_pitch_angle;
+	//*u_turn    = controlQuantities.u_yaw_angle_hold;
 
 	/* --- Speed controller in superposition --- */
 	*u_forward = controlQuantities.u_pitch_angle + controlQuantities.u_speed_hold;

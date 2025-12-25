@@ -46,6 +46,12 @@ void PID_Init(PID_t *pid, PID_Type_t type, float Kp, float Ki, float Kd) {
  * @retval float:  The computed PID output, limited to the configured output range.
  */
 float PID_Update(PID_t *pid, float target, float measurement, float measured_rate, float dt) {
+
+	if (!isfinite(target) || !isfinite(measurement) ||
+	    !isfinite(measured_rate) || !isfinite(dt) || dt <= 0.0f) {
+	    return pid->output; // fail-safe hold
+	}
+
 	float error = measurement - target;
 	float derivative;
 
@@ -88,5 +94,11 @@ float PID_Update(PID_t *pid, float target, float measurement, float measured_rat
     if (output > pid->output_limit) output = pid->output_limit;
 	if (output < -pid->output_limit) output = -pid->output_limit;
 	pid->output = output;
+
+	if (!isfinite(output)) {
+	    output = 0.0f;
+	    pid->integral = 0.0f;
+	}
+	
 	return output;
 }
